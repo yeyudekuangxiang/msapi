@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-var port = flag.String("port", "3001", "http server port")
+var port = flag.String("port", "3000", "http server port")
 var cacheDir = flag.String("cacheDir", "./cache/", "http server cache dir")
 var email = flag.String("email", "", "email address")
 var password = flag.String("password", "", "password")

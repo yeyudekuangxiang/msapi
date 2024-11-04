@@ -10,10 +10,10 @@ WORKDIR /data/msapi
 
 COPY --from=builder /tmp/msapi/msapi ./
 
-RUN ls && chmod a+x ./msapi
+RUN ls && chmod a+x /data/msapi/msapi
 
-EXPOSE 8080
+EXPOSE 3000
 
-CMD ["./msapi"]
+CMD ["/data/msapi/msapi"]
 
 
