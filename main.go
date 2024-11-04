@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/md5"
 	"flag"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/yeyudekuangxiang/msapi/search"
 	"log"
@@ -13,7 +15,7 @@ var cacheDir = flag.String("cacheDir", "./cache/", "http server cache dir")
 var email = flag.String("email", "", "email address")
 var password = flag.String("password", "", "password")
 var netEasyDomain = flag.String("domain", "http://nas.example:3000", "http server netEasyDomain")
-var auth = flag.String("auth", "admin", "http server auth")
+var auth = flag.String("auth", "", "http server auth")
 
 func main() {
 	flag.Parse()
@@ -62,6 +64,9 @@ func main() {
 			return
 		}
 
+		cacheKey := Md5(fmt.Sprintf("lrc%s%s", p.Title, p.Artist))
+		c.Header("Cache-Control", "public, max-age=3600")
+		c.Header("ETag", cacheKey)
 		c.Data(200, "text/plain", lrcData)
 	})
 	r.POST("/lyrics/confirm", func(c *gin.Context) {
@@ -88,6 +93,9 @@ func main() {
 			c.Status(404)
 			return
 		}
+		cacheKey := Md5(fmt.Sprintf("cover%s%s%s", p.Title, p.Album, p.Artist))
+		c.Header("Cache-Control", "public, max-age=3600")
+		c.Header("ETag", cacheKey)
 		if p.Title != "" && p.Album != "" && p.Artist != "" {
 			data, err := netEasy.GetMusicCover(search.GetMusicCoverParam{
 				Title:  p.Title,
@@ -128,4 +136,8 @@ func main() {
 		return
 	})
 	http.ListenAndServe(":"+*port, r)
+}
+
+func Md5(str string) string {
+	return fmt.Sprintf("%x", md5.Sum([]byte(str)))
 }
