@@ -16,7 +16,7 @@ RUN chmod a+x msapi
 
 RUN git clone https://gitlab.com/Binaryify/neteasecloudmusicapi.git \
     && cd neteasecloudmusicapi \
-    && npm install \
+    && npm install
 
 
 CMD ["./msapi"]
