@@ -1,19 +1,22 @@
-FROM golang:1.22 AS builder
+FROM golang:1.21 as builder
+
 WORKDIR /tmp/msapi
-COPY . ./
 
-RUN ls && env GOOS=linux GOARCH=amd64 go build -o msapi .
+COPY . .
+RUN ls
+RUN go mod download && \
+    CGO_ENABLED=0 go build -a -ldflags '-extldflags "-static"' -o msapi .
 
-FROM alpine:latest AS product
+FROM node:20.14.0 as producer
 
 WORKDIR /data/msapi
 
+COPY ./neteasecloudmusicapi ./
+RUN ls \
+    && cd neteasecloudmusicapi \
+    && npm install \
+
 COPY --from=builder /tmp/msapi/msapi ./
+RUN chmod a+x msapi
 
-RUN ls && chmod a+x /data/msapi/msapi
-
-EXPOSE 3000
-
-CMD ["/data/msapi/msapi"]
-
-
+CMD ["./msapi"]
