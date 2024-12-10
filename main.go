@@ -45,7 +45,7 @@ func main() {
 	}()
 
 	go func() {
-		cmd := exec.Command("node", "./NeteaseCloudMusicApi/app.js")
+		cmd := exec.Command("node", "./neteasecloudmusicapi/app.js")
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		go func() {
