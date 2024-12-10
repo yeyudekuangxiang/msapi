@@ -4,8 +4,8 @@ WORKDIR /tmp/msapi
 
 COPY . .
 RUN ls
-RUN go mod download && \
-    CGO_ENABLED=0 go build -a -ldflags '-extldflags "-static"' -o msapi .
+RUN go mod download
+RUN CGO_ENABLED=0 go build -a -ldflags '-extldflags "-static"' -o msapi .
 
 FROM node:20.14.0 as producer
 
