@@ -1,4 +1,4 @@
-FROM golang:1.21 as builder
+FROM golang:1.22 AS builder
 
 WORKDIR /tmp/msapi
 
@@ -7,7 +7,7 @@ RUN ls
 RUN go mod download
 RUN CGO_ENABLED=0 go build -a -ldflags '-extldflags "-static"' -o msapi .
 
-FROM node:20.14.0 as producer
+FROM node:20.14.0 AS producer
 
 WORKDIR /data/msapi
 
