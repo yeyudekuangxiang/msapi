@@ -11,12 +11,12 @@ FROM node:20.14.0 as producer
 
 WORKDIR /data/msapi
 
-COPY ./neteasecloudmusicapi ./
-RUN ls \
+COPY --from=builder /tmp/msapi/msapi ./
+RUN chmod a+x msapi
+
+RUN git clone https://gitlab.com/Binaryify/neteasecloudmusicapi.git \
     && cd neteasecloudmusicapi \
     && npm install \
 
-COPY --from=builder /tmp/msapi/msapi ./
-RUN chmod a+x msapi
 
 CMD ["./msapi"]
