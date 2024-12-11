@@ -172,17 +172,22 @@ type Music struct {
 func saveAllSinger(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
 	// 暂时屏蔽入驻歌手
 	sort := int64(0)
+	okMap := make(map[int64]bool)
 	for i := 1; i < 100; i++ {
 		for _, tp := range []int64{1, 2, 3} {
+			if okMap[tp] {
+				continue
+			}
+
 			log.Printf("获取%d分类歌手列表,code:%s,page:%d", tp, "", i)
 			singers, err := netEasy.GetSingerList(tp, -1, "", 100, (i-1)*100)
 			if err != nil {
 				log.Println("获取歌手列表失败", i, tp, err)
-				break
+				continue
 			}
 			if len(singers) == 0 {
 				log.Println("该分类歌手搜索完毕", tp)
-				break
+				okMap[tp] = true
 			}
 			log.Println("获取到歌手", len(singers))
 			artists := make([]Artist, 0)
