@@ -52,6 +52,7 @@ func (n *NetEasyAPi) GetPlayUrl(ids []int64, br int64) ([]NetEasyGetPlayUrlInfo,
 
 // EmailLogin 邮箱登录
 func (n *NetEasyAPi) EmailLogin() error {
+	return nil
 	resp, err := http.Get(fmt.Sprintf("%s/login?email=%s&password=%s", n.Domain, n.Email, n.Password))
 	if err != nil {
 		return err
