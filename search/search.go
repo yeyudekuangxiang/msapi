@@ -228,8 +228,26 @@ func (n *NetEasyAPi) SearchSuggest(keywords string) (*NetEasySearchSuggestResult
 	return &r.Result, nil
 }
 
-func (n *NetEasyAPi) GetSingerList(cat int64, code string, limit int, offset int) ([]NetEasyArtistInfo, error) {
-	u := fmt.Sprintf("%s/artist/list?cat=%d&initial=%s&limit=%d&offset=%d", n.Domain, cat, code, limit, offset)
+/*
+GetSingerList
+
+	type 取值
+	1:男歌手
+	2:女歌手
+	3:乐队
+
+	area 取值
+	-1:全部
+	7华语
+	96欧美
+	8:日本
+	16韩国
+	0:其他
+
+	initial 取值 a-z/A-Z
+*/
+func (n *NetEasyAPi) GetSingerList(tp int64, area int64, code string, limit int, offset int) ([]NetEasyArtistInfo, error) {
+	u := fmt.Sprintf("%s/artist/list?type=%d&area=%d&initial=%s&limit=%d&offset=%d", n.Domain, tp, area, code, limit, offset)
 	body, err := n.get(u, true)
 	if err != nil {
 		return nil, err
