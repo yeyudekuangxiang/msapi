@@ -188,6 +188,7 @@ func saveAllSinger(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
 			if len(singers) == 0 {
 				log.Println("该分类歌手搜索完毕", tp)
 				okMap[tp] = true
+				continue
 			}
 			log.Println("获取到歌手", len(singers))
 			artists := make([]Artist, 0)
