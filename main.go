@@ -111,10 +111,14 @@ func main() {
 	switch *mode {
 	case "singer":
 		saveAllSinger(netEasy, linkDb)
+	case "musichot":
+		saveAllHotMusic(netEasy, linkDb)
 	case "music":
-		saveAllMusic(netEasy, linkDb)
+		saveAllNormalMusic(netEasy, linkDb)
+	case "downhot":
+		downHotArtistMusic(netEasy, linkDb)
 	case "down":
-		downAllMusic(netEasy, linkDb)
+		downNormalArtistMusic(netEasy, linkDb)
 	}
 	Close()
 }
@@ -167,6 +171,7 @@ type Music struct {
 	IsDown  int
 	Path    string
 	Site    string
+	Sort    int64
 }
 
 func saveAllSinger(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
@@ -214,11 +219,71 @@ func saveAllSinger(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
 		}
 	}
 }
-
-func saveAllMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
+func saveAllHotMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
 	artists := make([]Artist, 0)
 	limit := 100
-	linkDb.Where("site = ? and is_fetch = 0", "163").FindInBatches(&artists, 100, func(tx *gorm.DB, batch int) error {
+	linkDb.Where("site = ? and is_fetch = 0 and sort < 9999999999", "163").FindInBatches(&artists, 100, func(tx *gorm.DB, batch int) error {
+		for _, artist := range artists {
+			sort := 1000 * artist.Sort
+			for i := 1; i < 5; i++ {
+				log.Println("搜索歌手", artist.ID, artist.Name, i)
+				searchResult, err := netEasy.SearchMusic(artist.Name, (i-1)*limit, limit)
+				if err != nil {
+					CloseWithErr("搜索歌手歌曲失败", artist, err)
+				}
+				if len(searchResult.Songs) == 0 {
+					log.Println("歌手搜索完毕", artist.Name)
+					log.Println("30秒后继续")
+					time.Sleep(30 * time.Second)
+					break
+				}
+				log.Println("搜索成功", artist.Name, len(searchResult.Songs))
+				musicList := make([]Music, 0)
+				for _, item := range searchResult.Songs {
+					sort++
+					artistStr, _ := json.Marshal(item.Artists)
+					musicList = append(musicList, Music{
+						MusicId: strconv.FormatInt(item.Id, 10),
+						Name:    item.Name,
+						Pic:     "",
+						Lyric:   "",
+						Artist:  string(artistStr),
+						Album:   "",
+						Time:    0,
+						Quality: "",
+						DownUrl: "",
+						IsDown:  0,
+						Path:    "",
+						Site:    "163",
+						Sort:    sort,
+					})
+				}
+				err = linkDb.Clauses(clause.OnConflict{DoNothing: true}).Create(&musicList).Error
+				if err != nil {
+					log.Println("保存歌曲信息失败", artist, i, err)
+				}
+				if len(searchResult.Songs) < limit {
+					log.Println("歌手搜索完毕", artist.Name)
+					log.Println("30秒后继续")
+					time.Sleep(30 * time.Second)
+					break
+				}
+				log.Println("30秒后继续")
+				time.Sleep(30 * time.Second)
+			}
+			artist.IsFetch = 1
+			err := tx.Save(&artist).Error
+			if err != nil {
+				log.Println("保存搜索状态失败", artist, err)
+			}
+		}
+		return nil
+	})
+}
+func saveAllNormalMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
+	artists := make([]Artist, 0)
+	limit := 100
+	linkDb.Where("site = ? and is_fetch = 0 and sort = 9999999999", "163").FindInBatches(&artists, 100, func(tx *gorm.DB, batch int) error {
 		for _, artist := range artists {
 			for i := 1; i < 5; i++ {
 				log.Println("搜索歌手", artist.ID, artist.Name, i)
@@ -249,6 +314,7 @@ func saveAllMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
 						IsDown:  0,
 						Path:    "",
 						Site:    "163",
+						Sort:    9999999999,
 					})
 				}
 				err = linkDb.Clauses(clause.OnConflict{DoNothing: true}).Create(&musicList).Error
@@ -283,10 +349,57 @@ func CloseWithErr(v ...any) {
 	log.Println(v...)
 	Close()
 }
-func downAllMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
+func downHotArtistMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
 	musicList := make([]Music, 0)
 	c := make(chan int, *num)
-	linkDb.Where("site = '163' and is_down = 0").FindInBatches(&musicList, 50, func(tx *gorm.DB, batch int) error {
+	linkDb.Where("site = '163' and is_down = 0 and sort < 9999999999").FindInBatches(&musicList, 50, func(tx *gorm.DB, batch int) error {
+		wg := sync.WaitGroup{}
+		ids := make([]int64, 0)
+		musicMap := make(map[int64]Music)
+		for _, m := range musicList {
+			ids = append(ids, m.ID)
+			musicMap[m.ID] = m
+		}
+		songUrls, err := netEasy.GetPlayUrl(ids, 999000)
+		if err != nil {
+			CloseWithErr(err)
+		}
+		for _, song := range songUrls {
+			c <- 1
+			music := musicMap[song.Id]
+			wg.Add(1)
+			go func() {
+				defer func() {
+					wg.Done()
+					<-c
+				}()
+
+				dir, realSingerName := getSingerName(music.Artist)
+				filePath, err := autoDown(dir, realSingerName, music.Name, song.Url)
+				if err != nil {
+					log.Println("下载失败", music.ID, err)
+				} else {
+					music.IsDown = 1
+					music.Path = filePath
+					music.DownUrl = song.Url
+					err = tx.Save(&music).Error
+					if err != nil {
+						log.Println("保存下载状态失败", music, err)
+					}
+				}
+				return
+			}()
+		}
+		wg.Wait()
+		log.Println("30秒后继续下载")
+		time.Sleep(time.Second * 30)
+		return nil
+	})
+}
+func downNormalArtistMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
+	musicList := make([]Music, 0)
+	c := make(chan int, *num)
+	linkDb.Where("site = '163' and is_down = 0 and sort = 9999999999").FindInBatches(&musicList, 50, func(tx *gorm.DB, batch int) error {
 		wg := sync.WaitGroup{}
 		ids := make([]int64, 0)
 		musicMap := make(map[int64]Music)
