@@ -228,8 +228,8 @@ func (n *NetEasyAPi) SearchSuggest(keywords string) (*NetEasySearchSuggestResult
 	return &r.Result, nil
 }
 
-func (n *NetEasyAPi) GetSingerList(cat int64, limit int, offset int) ([]NetEasyArtistInfo, error) {
-	u := fmt.Sprintf("%s/artist/list?cat=%d&initial=b&limit=%d&offset=%d", n.Domain, cat, limit, offset)
+func (n *NetEasyAPi) GetSingerList(cat int64, code string, limit int, offset int) ([]NetEasyArtistInfo, error) {
+	u := fmt.Sprintf("%s/artist/list?cat=%d&initial=%s&limit=%d&offset=%d", n.Domain, cat, code, limit, offset)
 	body, err := n.get(u, true)
 	if err != nil {
 		return nil, err
