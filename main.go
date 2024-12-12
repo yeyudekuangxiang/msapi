@@ -483,7 +483,7 @@ func autoDown(subDirName string, singerName, musicName, u string) (string, error
 	} else if strings.Contains(ct, "audio/flac") || strings.Contains(ct, "audio/x-flac") {
 		fileName = fmt.Sprintf("%s - %s.mp3", musicName, singerName)
 	} else {
-		log.Println("未知的音频格式", u, musicName, ct)
+		//log.Println("未知的音频格式", u, musicName, ct)
 	}
 
 	// 检查Content-Disposition头以获取文件名
@@ -520,7 +520,10 @@ func autoDown(subDirName string, singerName, musicName, u string) (string, error
 	}
 	pathName := path.Join(*downPath, subDirName)
 	fileName = path.Join(pathName, fileName)
-	os.MkdirAll(pathName, os.ModePerm)
+	err = os.MkdirAll(pathName, os.ModePerm)
+	if err != nil {
+		return "", err
+	}
 	// 创建本地文件
 	out, err := os.Create(fileName)
 	if err != nil {
@@ -546,7 +549,7 @@ func getSingerName(singerStr string) (string, string) {
 
 	realSingerName := ""
 	for _, ar := range m {
-		realSingerName += "," + ar["name"].(string)
+		realSingerName += "," + strings.TrimSpace(ar["name"].(string))
 		if len(realSingerName) > 150 {
 			log.Println("歌手名字太长截断部分歌手", singerStr)
 			break
@@ -559,5 +562,5 @@ func getSingerName(singerStr string) (string, string) {
 	if name == "" {
 		return "未知", "未知"
 	}
-	return name, realSingerName
+	return strings.TrimSpace(name), realSingerName
 }
