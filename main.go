@@ -357,14 +357,26 @@ func downHotArtistMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
 		ids := make([]int64, 0)
 		musicMap := make(map[int64]Music)
 		for _, m := range musicList {
-			ids = append(ids, m.ID)
-			musicMap[m.ID] = m
+			musicId, err := strconv.ParseInt(m.MusicId, 10, 64)
+			if err != nil {
+				log.Println("转换musicid失败", m.ID, m.MusicId, err)
+				continue
+			}
+			ids = append(ids, musicId)
+			musicMap[musicId] = m
+		}
+		if len(ids) == 0 {
+			return nil
 		}
 		songUrls, err := netEasy.GetPlayUrl(ids, 999000)
 		if err != nil {
 			CloseWithErr(err)
 		}
 		for _, song := range songUrls {
+			if song.Url == "" {
+				log.Println("未获取到下载链接", song)
+				continue
+			}
 			c <- 1
 			music := musicMap[song.Id]
 			wg.Add(1)
