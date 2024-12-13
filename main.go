@@ -34,6 +34,7 @@ var num = flag.Int("num", 2, "")
 var mode = flag.String("mode", "", "")
 var domain = flag.String("domain", "http://127.0.0.1:3000", "")
 var runHttp = flag.Bool("http", false, "")
+var host = flag.String("db", "nas.znil.cn", "")
 var closeCh = make(chan struct{})
 
 func main() {
@@ -76,7 +77,7 @@ func main() {
 
 	linkDb, err := db.NewMysqlDB(db.Config{
 		Type:         "mysql",
-		Host:         "nas.znil.cn",
+		Host:         *host,
 		UserName:     "jzl",
 		Password:     "ZHUImeng521..",
 		Database:     "freemusic",
