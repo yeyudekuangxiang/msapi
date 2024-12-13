@@ -32,6 +32,8 @@ import (
 var downPath = flag.String("down", "./music", "")
 var num = flag.Int("num", 2, "")
 var mode = flag.String("mode", "", "")
+var domain = flag.String("domain", "http://127.0.0.1:3000", "")
+var runHttp = flag.Bool("http", false, "")
 var closeCh = make(chan struct{})
 
 func main() {
@@ -45,29 +47,31 @@ func main() {
 		Close()
 	}()
 
-	go func() {
-		log.Println("开始启动http")
-		cmd := exec.Command("node", "./neteasecloudmusicapi/app.js")
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+	if *runHttp {
 		go func() {
-			<-closeCh
-			if cmd.Process != nil {
-				log.Println("退出http")
-				cmd.Process.Kill()
+			log.Println("开始启动http")
+			cmd := exec.Command("node", "./neteasecloudmusicapi/app.js")
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			go func() {
+				<-closeCh
+				if cmd.Process != nil {
+					log.Println("退出http")
+					cmd.Process.Kill()
+				}
+			}()
+			err := cmd.Run()
+			if err != nil {
+				log.Println("http运行错误", err)
 			}
+			log.Println("http已退出")
 		}()
-		err := cmd.Run()
-		if err != nil {
-			log.Println("http运行错误", err)
-		}
-		log.Println("http已退出")
-	}()
+	}
 
 	log.Println("5秒后开始抓取")
 	time.Sleep(time.Second * 5)
 	netEasy := search.NetEasyAPi{
-		Domain: "http://127.0.0.1:3000",
+		Domain: *domain,
 	}
 
 	linkDb, err := db.NewMysqlDB(db.Config{
@@ -95,7 +99,7 @@ func main() {
 			log.Println("http服务未启动,停止抓取")
 			os.Exit(1)
 		}
-		resp, err := http.Get("http://127.0.0.1:3000")
+		resp, err := http.Get(*domain)
 		if err != nil {
 			log.Println("检测失败，5秒后重试", err)
 		} else {
