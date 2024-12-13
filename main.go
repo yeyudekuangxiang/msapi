@@ -375,13 +375,13 @@ func Scan[T any](linkDB *gorm.DB, rows *sql.Rows, num int) ([]T, error) {
 }
 func downHotArtistMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
 	c := make(chan int, *num)
-	rows, err := linkDb.Where("site = '163' and is_down = 0 and sort < 9999999999").Order("sort asc").Rows()
+	rows, err := linkDb.Model(Music{}).Where("site = '163' and is_down = 0 and sort < 9999999999").Order("sort asc").Rows()
 	if err != nil {
 		CloseWithErr("查询热门歌曲失败", err)
 	}
 	defer rows.Close()
 	for {
-		list, err := Scan[Music](linkDb, rows, 10)
+		list, err := Scan[Music](linkDb, rows, 50)
 		if err != nil {
 			CloseWithErr("查询格式失败", err)
 		}
@@ -393,14 +393,26 @@ func downHotArtistMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
 		ids := make([]int64, 0)
 		musicMap := make(map[int64]Music)
 		for _, m := range list {
-			ids = append(ids, m.ID)
-			musicMap[m.ID] = m
+			musicId, err := strconv.ParseInt(m.MusicId, 10, 64)
+			if err != nil {
+				log.Println("转换musicid失败", m.ID, m.MusicId, err)
+				continue
+			}
+			ids = append(ids, musicId)
+			musicMap[musicId] = m
+		}
+		if len(ids) == 0 {
+			continue
 		}
 		songUrls, err := netEasy.GetPlayUrl(ids, 999000)
 		if err != nil {
 			CloseWithErr(err)
 		}
 		for _, song := range songUrls {
+			if song.Url == "" {
+				log.Println("未获取到下载链接", song)
+				continue
+			}
 			c <- 1
 			music := musicMap[song.Id]
 			wg.Add(1)
@@ -439,14 +451,26 @@ func downNormalArtistMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
 		ids := make([]int64, 0)
 		musicMap := make(map[int64]Music)
 		for _, m := range musicList {
-			ids = append(ids, m.ID)
-			musicMap[m.ID] = m
+			musicId, err := strconv.ParseInt(m.MusicId, 10, 64)
+			if err != nil {
+				log.Println("转换musicid失败", m.ID, m.MusicId, err)
+				continue
+			}
+			ids = append(ids, musicId)
+			musicMap[musicId] = m
+		}
+		if len(ids) == 0 {
+			return nil
 		}
 		songUrls, err := netEasy.GetPlayUrl(ids, 999000)
 		if err != nil {
 			CloseWithErr(err)
 		}
 		for _, song := range songUrls {
+			if song.Url == "" {
+				log.Println("未获取到下载链接", song)
+				continue
+			}
 			c <- 1
 			music := musicMap[song.Id]
 			wg.Add(1)

@@ -166,7 +166,6 @@ func (n *NetEasyAPi) get(url string, needLogin bool) ([]byte, error) {
 }
 
 func (n *NetEasyAPi) SearchMusic(keywords string, offset, limit int) (*NetEasySearchMusicResult, error) {
-
 	respBody, err := n.get(fmt.Sprintf("%s/search?keywords=%s&type=1&offset=%d&limit=%d", n.Domain, url.QueryEscape(keywords), offset, limit), true)
 	if err != nil {
 		log.Println("搜索歌曲失败", string(respBody))
