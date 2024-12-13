@@ -158,9 +158,9 @@ func (n *NetEasyAPi) get(url string, needLogin bool) ([]byte, error) {
 	if resp.StatusCode != 200 {
 		errBody, err := io.ReadAll(resp.Body)
 		if err == nil {
-			return errBody, fmt.Errorf("%d", resp.StatusCode)
+			return errBody, fmt.Errorf("http status:%d", resp.StatusCode)
 		}
-		return nil, fmt.Errorf("%d", resp.StatusCode)
+		return nil, fmt.Errorf("http status:%d", resp.StatusCode)
 	}
 	return io.ReadAll(resp.Body)
 }

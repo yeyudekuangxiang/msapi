@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/md5"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -87,8 +88,8 @@ func main() {
 		CloseWithErr("连接数据库失败", err)
 	}
 
-	netEasy.SetCookie(os.Getenv("msapicookie"))
-	//netEasy.SetCookie("nts_mail_user=zhanling_jin@163.com:-1:1; NTES_P_UTID=BunwI3FTXpsHF9qsTh7EUoIINSJ9uTOI|1732084109; NMTID=00OTl8UxJuYSkqoVEuwgtpTuEydk80AAAGTqiGvDQ; _ntes_nnid=9435e3533b3698c1f2050a4b37f60e3e,1733726154923; _ntes_nuid=9435e3533b3698c1f2050a4b37f60e3e; WM_NI=r7RMEk6NFGHSi4whdlnzNLLPL4ztbasZ0qcCr%2BE60KRl%2FANQCTRqRdciRSf6EltrM3p26B4DryDmcx8QWGdWACiVbzUCVdewkV%2B9ahJuNxWXhwprywldthgPAjW5PtAeYUc%3D; WM_NIKE=9ca17ae2e6ffcda170e2e6eed4b648a891ae83ea45b2e78fa3d55e879b8eb1d65db4b7adb8c148a29cf7acf82af0fea7c3b92ab2e99eaec861f6928aa8cb59abecb989e768aea682adcf5c90ecb695e16bb1860092e249b2f58bd7b34192b4e1a2cd5b818c9e92d170a1b79eb4e53e87b4bc93d039b4eefaa3b750b2a78c8ee274fc8f99a8e75d839da7b7e172979d9a85e87da98ae5dae4648aab8299d654aca9c093fc7db0bcbc89e65c83b699d6d38083bb97b6e237e2a3; WM_TID=TFlb%2FC9q3D5BRFFEBFbDGojJXQaaHsf%2B; sDeviceId=YD-5VAjuoAE%2FQpAAkUFVVbTWoiZWALkFOlM; __snaker__id=IaE2dtnH0IcuvbOv; ntes_kaola_ad=1; P_INFO=17624865520|1733726348|1|music|00&99|null&null&null#shh&null#10#0|&0|null|17624865520; ntes_utid=tid._.0YcyzRv8%252BVNFElQVAAfXWtncHFfkEawV._.0; JSESSIONID-WYYY=hT9v8lbIX%2FlAuWlIah0ZHd0qVvPPKlVBiKJ9BqMWpNuvJeD9hXRKWPdi%2BtWpUZb4hY3XPJ1Qnrz%2FaNd7n079Q1gOTqPtUI%2BK%5CE5Y%2FHhbtNm6AWtemoxW%5CZKBwa0NjuMI%2F6D%2BrQZfojrTGq3O5TQHqm2KxuovXtt%2BNu4OaYV3ZjsxiHqc%3A1733797640870; _iuqxldmzr_=32; gdxidpyhxdE=GMxJVCA3hUA9%2BtSlAnGUXGiRYDbERvrxdz5dKvs7ijduRDzV5f2geiUTJCQbhKALXXvRawOgGe%2B%2FN6%5CbZopIrmW7z33uETdRV%2FH8U9gZ5Xo4SqDwAugrYiKmNjd8pHPh%2B%2FiXv8YkgGY58Wg0poRwATqN5HYkXBqtWyd9CTfqg%2B9ACewn%3A1733796747025; __csrf=115b9a46ee9ab140c941456ea9150995; __remember_me=true; MUSIC_U=00922A012385F1A674B00DB8ADD996E03F74E823B19AFA47FB91DDF0A937C097F71A9B0C2945CA78BCDA77937CE9CF387C75A7E3C1705A1BAD82B744AD84DABCB312F6047F83ECCA0668FD9D189A1E9585CC8F77017AAD6DE87D71EA592727617CBC5FC11BFE786EE4CA05C6E6E99066D9A6A20A592EDEFA2B756E8FDB5FC760392DAE2BB22FF9CDBE4DAC196BE16A72549A5190D12B2938075B5DD4E8C3CD6D440E6A6519D26C36DC119C7E46971AE0AE4C3DBA6258CF8806DD9CCEAC8767CD2F31BE1A712A4E0E10FEA72C6C68E547EE3DE3AE202FDCCAC6FDA9C97E7EFD5CE52B6920920B4F3B16F464E8BF1AFEA17A34F1630BFD7FA9EB9C6BF04E0BE6BBE19D02CD23E7781A274DAF545903D7A0F49287CC68B4EB320F64A1A1C34B5DBFFFBBFF40F7E92ADACBE000BAE8BFE6862A1A1DF4BA9D66641F377F5F83114D2D5350C876396C60CDA9FAAEAFF9489D3B4A0DDBDCF5F3D2035C0A46A0664C9EDED5")
+	//netEasy.SetCookie(os.Getenv("msapicookie"))
+	netEasy.SetCookie("nts_mail_user=zhanling_jin@163.com:-1:1; NTES_P_UTID=BunwI3FTXpsHF9qsTh7EUoIINSJ9uTOI|1732084109; NMTID=00OTl8UxJuYSkqoVEuwgtpTuEydk80AAAGTqiGvDQ; _ntes_nnid=9435e3533b3698c1f2050a4b37f60e3e,1733726154923; _ntes_nuid=9435e3533b3698c1f2050a4b37f60e3e; WM_NI=r7RMEk6NFGHSi4whdlnzNLLPL4ztbasZ0qcCr%2BE60KRl%2FANQCTRqRdciRSf6EltrM3p26B4DryDmcx8QWGdWACiVbzUCVdewkV%2B9ahJuNxWXhwprywldthgPAjW5PtAeYUc%3D; WM_NIKE=9ca17ae2e6ffcda170e2e6eed4b648a891ae83ea45b2e78fa3d55e879b8eb1d65db4b7adb8c148a29cf7acf82af0fea7c3b92ab2e99eaec861f6928aa8cb59abecb989e768aea682adcf5c90ecb695e16bb1860092e249b2f58bd7b34192b4e1a2cd5b818c9e92d170a1b79eb4e53e87b4bc93d039b4eefaa3b750b2a78c8ee274fc8f99a8e75d839da7b7e172979d9a85e87da98ae5dae4648aab8299d654aca9c093fc7db0bcbc89e65c83b699d6d38083bb97b6e237e2a3; WM_TID=TFlb%2FC9q3D5BRFFEBFbDGojJXQaaHsf%2B; sDeviceId=YD-5VAjuoAE%2FQpAAkUFVVbTWoiZWALkFOlM; __snaker__id=IaE2dtnH0IcuvbOv; ntes_kaola_ad=1; P_INFO=17624865520|1733726348|1|music|00&99|null&null&null#shh&null#10#0|&0|null|17624865520; ntes_utid=tid._.0YcyzRv8%252BVNFElQVAAfXWtncHFfkEawV._.0; JSESSIONID-WYYY=hT9v8lbIX%2FlAuWlIah0ZHd0qVvPPKlVBiKJ9BqMWpNuvJeD9hXRKWPdi%2BtWpUZb4hY3XPJ1Qnrz%2FaNd7n079Q1gOTqPtUI%2BK%5CE5Y%2FHhbtNm6AWtemoxW%5CZKBwa0NjuMI%2F6D%2BrQZfojrTGq3O5TQHqm2KxuovXtt%2BNu4OaYV3ZjsxiHqc%3A1733797640870; _iuqxldmzr_=32; gdxidpyhxdE=GMxJVCA3hUA9%2BtSlAnGUXGiRYDbERvrxdz5dKvs7ijduRDzV5f2geiUTJCQbhKALXXvRawOgGe%2B%2FN6%5CbZopIrmW7z33uETdRV%2FH8U9gZ5Xo4SqDwAugrYiKmNjd8pHPh%2B%2FiXv8YkgGY58Wg0poRwATqN5HYkXBqtWyd9CTfqg%2B9ACewn%3A1733796747025; __csrf=115b9a46ee9ab140c941456ea9150995; __remember_me=true; MUSIC_U=00922A012385F1A674B00DB8ADD996E03F74E823B19AFA47FB91DDF0A937C097F71A9B0C2945CA78BCDA77937CE9CF387C75A7E3C1705A1BAD82B744AD84DABCB312F6047F83ECCA0668FD9D189A1E9585CC8F77017AAD6DE87D71EA592727617CBC5FC11BFE786EE4CA05C6E6E99066D9A6A20A592EDEFA2B756E8FDB5FC760392DAE2BB22FF9CDBE4DAC196BE16A72549A5190D12B2938075B5DD4E8C3CD6D440E6A6519D26C36DC119C7E46971AE0AE4C3DBA6258CF8806DD9CCEAC8767CD2F31BE1A712A4E0E10FEA72C6C68E547EE3DE3AE202FDCCAC6FDA9C97E7EFD5CE52B6920920B4F3B16F464E8BF1AFEA17A34F1630BFD7FA9EB9C6BF04E0BE6BBE19D02CD23E7781A274DAF545903D7A0F49287CC68B4EB320F64A1A1C34B5DBFFFBBFF40F7E92ADACBE000BAE8BFE6862A1A1DF4BA9D66641F377F5F83114D2D5350C876396C60CDA9FAAEAFF9489D3B4A0DDBDCF5F3D2035C0A46A0664C9EDED5")
 	for i := 0; i <= 20; i++ {
 		if i == 10 {
 			log.Println("http服务未启动,停止抓取")
@@ -222,63 +223,65 @@ func saveAllSinger(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
 func saveAllHotMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
 	artists := make([]Artist, 0)
 	limit := 100
-	linkDb.Where("site = ? and is_fetch = 0 and sort < 9999999999", "163").FindInBatches(&artists, 100, func(tx *gorm.DB, batch int) error {
-		for _, artist := range artists {
-			sort := 1000 * artist.Sort
-			for i := 1; i < 5; i++ {
-				log.Println("搜索歌手", artist.ID, artist.Name, i)
-				searchResult, err := netEasy.SearchMusic(artist.Name, (i-1)*limit, limit)
-				if err != nil {
-					CloseWithErr("搜索歌手歌曲失败", artist, err)
-				}
-				if len(searchResult.Songs) == 0 {
-					log.Println("歌手搜索完毕", artist.Name)
-					log.Println("30秒后继续")
-					time.Sleep(30 * time.Second)
-					break
-				}
-				log.Println("搜索成功", artist.Name, len(searchResult.Songs))
-				musicList := make([]Music, 0)
-				for _, item := range searchResult.Songs {
-					sort++
-					artistStr, _ := json.Marshal(item.Artists)
-					musicList = append(musicList, Music{
-						MusicId: strconv.FormatInt(item.Id, 10),
-						Name:    item.Name,
-						Pic:     "",
-						Lyric:   "",
-						Artist:  string(artistStr),
-						Album:   "",
-						Time:    0,
-						Quality: "",
-						DownUrl: "",
-						IsDown:  0,
-						Path:    "",
-						Site:    "163",
-						Sort:    sort,
-					})
-				}
-				err = linkDb.Clauses(clause.OnConflict{DoNothing: true}).Create(&musicList).Error
-				if err != nil {
-					log.Println("保存歌曲信息失败", artist, i, err)
-				}
-				if len(searchResult.Songs) < limit {
-					log.Println("歌手搜索完毕", artist.Name)
-					log.Println("30秒后继续")
-					time.Sleep(30 * time.Second)
-					break
-				}
+	err := linkDb.Where("site = '163' and is_fetch = 0 and sort < 9999999999").Order("sort asc").Find(&artists).Error
+	if err != nil {
+		log.Println("查询热门歌手失败", err)
+		Close()
+	}
+	for _, artist := range artists {
+		sort := 1000 * artist.Sort
+		for i := 1; i < 5; i++ {
+			log.Println("搜索歌手", artist.ID, artist.Name, i)
+			searchResult, err := netEasy.SearchMusic(artist.Name, (i-1)*limit, limit)
+			if err != nil {
+				CloseWithErr("搜索歌手歌曲失败", artist, err)
+			}
+			if len(searchResult.Songs) == 0 {
+				log.Println("歌手搜索完毕", artist.Name)
 				log.Println("30秒后继续")
 				time.Sleep(30 * time.Second)
+				break
 			}
-			artist.IsFetch = 1
-			err := tx.Save(&artist).Error
+			log.Println("搜索成功", artist.Name, len(searchResult.Songs))
+			musicList := make([]Music, 0)
+			for _, item := range searchResult.Songs {
+				sort++
+				artistStr, _ := json.Marshal(item.Artists)
+				musicList = append(musicList, Music{
+					MusicId: strconv.FormatInt(item.Id, 10),
+					Name:    item.Name,
+					Pic:     "",
+					Lyric:   "",
+					Artist:  string(artistStr),
+					Album:   "",
+					Time:    0,
+					Quality: "",
+					DownUrl: "",
+					IsDown:  0,
+					Path:    "",
+					Site:    "163",
+					Sort:    sort,
+				})
+			}
+			err = linkDb.Clauses(clause.OnConflict{DoNothing: true}).Create(&musicList).Error
 			if err != nil {
-				log.Println("保存搜索状态失败", artist, err)
+				log.Println("保存歌曲信息失败", artist, i, err)
 			}
+			if len(searchResult.Songs) < limit {
+				log.Println("歌手搜索完毕", artist.Name)
+				log.Println("30秒后继续")
+				time.Sleep(30 * time.Second)
+				break
+			}
+			log.Println("30秒后继续")
+			time.Sleep(30 * time.Second)
 		}
-		return nil
-	})
+		artist.IsFetch = 1
+		err := linkDb.Save(&artist).Error
+		if err != nil {
+			log.Println("保存搜索状态失败", artist, err)
+		}
+	}
 }
 func saveAllNormalMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
 	artists := make([]Artist, 0)
@@ -349,34 +352,51 @@ func CloseWithErr(v ...any) {
 	log.Println(v...)
 	Close()
 }
+func Scan[T any](linkDB *gorm.DB, rows *sql.Rows, num int) ([]T, error) {
+	list := make([]T, 0, num)
+	var err error
+	for rows.Next() && num > 0 {
+		var v T
+		err = linkDB.ScanRows(rows, &v)
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, v)
+		num--
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return list, nil
+}
 func downHotArtistMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
-	musicList := make([]Music, 0)
 	c := make(chan int, *num)
-	linkDb.Where("site = '163' and is_down = 0 and sort < 9999999999").FindInBatches(&musicList, 50, func(tx *gorm.DB, batch int) error {
+	rows, err := linkDb.Where("site = '163' and is_down = 0 and sort < 9999999999").Order("sort asc").Rows()
+	if err != nil {
+		CloseWithErr("查询热门歌曲失败", err)
+	}
+	defer rows.Close()
+	for {
+		list, err := Scan[Music](linkDb, rows, 10)
+		if err != nil {
+			CloseWithErr("查询格式失败", err)
+		}
+		if len(list) == 0 {
+			log.Println("歌曲下载完毕")
+			break
+		}
 		wg := sync.WaitGroup{}
 		ids := make([]int64, 0)
 		musicMap := make(map[int64]Music)
-		for _, m := range musicList {
-			musicId, err := strconv.ParseInt(m.MusicId, 10, 64)
-			if err != nil {
-				log.Println("转换musicid失败", m.ID, m.MusicId, err)
-				continue
-			}
-			ids = append(ids, musicId)
-			musicMap[musicId] = m
-		}
-		if len(ids) == 0 {
-			return nil
+		for _, m := range list {
+			ids = append(ids, m.ID)
+			musicMap[m.ID] = m
 		}
 		songUrls, err := netEasy.GetPlayUrl(ids, 999000)
 		if err != nil {
 			CloseWithErr(err)
 		}
 		for _, song := range songUrls {
-			if song.Url == "" {
-				log.Println("未获取到下载链接", song)
-				continue
-			}
 			c <- 1
 			music := musicMap[song.Id]
 			wg.Add(1)
@@ -394,7 +414,7 @@ func downHotArtistMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
 					music.IsDown = 1
 					music.Path = filePath
 					music.DownUrl = song.Url
-					err = tx.Save(&music).Error
+					err = linkDb.Save(&music).Error
 					if err != nil {
 						log.Println("保存下载状态失败", music, err)
 					}
@@ -405,8 +425,7 @@ func downHotArtistMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
 		wg.Wait()
 		log.Println("30秒后继续下载")
 		time.Sleep(time.Second * 30)
-		return nil
-	})
+	}
 }
 func downNormalArtistMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
 	musicList := make([]Music, 0)
