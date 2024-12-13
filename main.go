@@ -377,6 +377,7 @@ func Scan[T any](linkDB *gorm.DB, rows *sql.Rows, num int) ([]T, error) {
 	return list, nil
 }
 func downHotArtistMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
+begin:
 	c := make(chan int, *num)
 	rows, err := linkDb.Model(Music{}).Where("site = '163' and is_down = 0 and sort < 9999999999").Order("sort asc").Rows()
 	if err != nil {
@@ -386,7 +387,12 @@ func downHotArtistMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
 	for {
 		list, err := Scan[Music](linkDb, rows, 50)
 		if err != nil {
-			CloseWithErr("查询歌手失败", err)
+			if strings.Contains(err.Error(), "invalid connection") {
+				log.Println("连接丢失重新查询", err)
+				goto begin
+			} else {
+				CloseWithErr("查询歌手失败", err)
+			}
 		}
 		if len(list) == 0 {
 			log.Println("歌曲下载完毕")
