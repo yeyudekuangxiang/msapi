@@ -418,12 +418,18 @@ begin:
 			CloseWithErr(err)
 		}
 		for _, song := range songUrls {
+			music := musicMap[song.Id]
 			if song.Url == "" {
 				log.Println("未获取到下载链接", song)
+				music.IsDown = 2
+				err = linkDb.Save(&music).Error
+				if err != nil {
+					log.Println("保存下载失败状态失败", music, err)
+				}
 				continue
 			}
 			c <- 1
-			music := musicMap[song.Id]
+
 			wg.Add(1)
 			go func() {
 				defer func() {
@@ -476,12 +482,17 @@ func downNormalArtistMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
 			CloseWithErr(err)
 		}
 		for _, song := range songUrls {
+			music := musicMap[song.Id]
 			if song.Url == "" {
 				log.Println("未获取到下载链接", song)
+				music.IsDown = 2
+				err = linkDb.Save(&music).Error
+				if err != nil {
+					log.Println("保存下载失败状态失败", music, err)
+				}
 				continue
 			}
 			c <- 1
-			music := musicMap[song.Id]
 			wg.Add(1)
 			go func() {
 				defer func() {
