@@ -578,6 +578,8 @@ func autoDown(subDirName string, singerName, musicName, u string) (string, error
 	if fileName == "" {
 		fileName = fmt.Sprintf("%s - %s", musicName, singerName)
 	}
+	fileName = ReplaceFileName(fileName)
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
@@ -631,4 +633,22 @@ func getSingerName(singerStr string) (string, string) {
 		return "未知", "未知"
 	}
 	return strings.TrimSpace(name), realSingerName
+}
+func ReplaceFileName(filename string) string {
+	filename = strings.ReplaceAll(filename, "/", ",")
+	m := map[string]string{
+		"\\": ",",
+		"/":  ",",
+		":":  " ",
+		"*":  " ",
+		"?":  " ",
+		"\"": " ",
+		"<":  " ",
+		">":  " ",
+		"|":  " ",
+	}
+	for oldStr, newStr := range m {
+		filename = strings.ReplaceAll(filename, oldStr, newStr)
+	}
+	return filename
 }
