@@ -377,26 +377,17 @@ func Scan[T any](linkDB *gorm.DB, rows *sql.Rows, num int) ([]T, error) {
 	return list, nil
 }
 func downHotArtistMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
-begin:
+
 	c := make(chan int, *num)
-	rows, err := linkDb.Model(Music{}).Where("site = '163' and is_down = 0 and sort < 9999999999").Order("sort asc").Rows()
-	if err != nil {
-		CloseWithErr("查询热门歌曲失败", err)
-	}
-	defer rows.Close()
 	for {
-		list, err := Scan[Music](linkDb, rows, 50)
+		list := make([]Music, 0)
+		err := linkDb.Where("site = '163' and is_down = 0 and sort < 9999999999").Limit(100).Order("sort asc").Find(&list).Error
 		if err != nil {
-			if strings.Contains(err.Error(), "invalid connection") {
-				log.Println("连接丢失重新查询", err)
-				goto begin
-			} else {
-				CloseWithErr("查询歌手失败", err)
-			}
+			CloseWithErr("查询热门歌曲失败", err)
 		}
 		if len(list) == 0 {
-			log.Println("歌曲下载完毕")
-			break
+			log.Println("下载歌曲完毕")
+			return
 		}
 		wg := sync.WaitGroup{}
 		ids := make([]int64, 0)
@@ -405,6 +396,11 @@ begin:
 			musicId, err := strconv.ParseInt(m.MusicId, 10, 64)
 			if err != nil {
 				log.Println("转换musicid失败", m.ID, m.MusicId, err)
+				m.IsDown = 3
+				err = linkDb.Save(&m).Error
+				if err != nil {
+					log.Println("保存下载状态失败", m, err)
+				}
 				continue
 			}
 			ids = append(ids, musicId)
@@ -415,7 +411,7 @@ begin:
 		}
 		songUrls, err := netEasy.GetPlayUrl(ids, 999000)
 		if err != nil {
-			CloseWithErr(err)
+			CloseWithErr("获取播放连接失败", err)
 		}
 		for _, song := range songUrls {
 			music := musicMap[song.Id]
@@ -441,6 +437,11 @@ begin:
 				filePath, err := autoDown(dir, realSingerName, music.Name, song.Url)
 				if err != nil {
 					log.Println("下载失败", music.ID, err)
+					music.IsDown = 4
+					err = linkDb.Save(&music).Error
+					if err != nil {
+						log.Println("保存下载状态失败", music, err)
+					}
 				} else {
 					music.IsDown = 1
 					music.Path = filePath
