@@ -1,4 +1,4 @@
-package search
+package neteasy
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 	"strconv"
 )
 
-type NetEasyAPi struct {
+type APi struct {
 	Domain           string
 	Email            string
 	Password         string
@@ -21,7 +21,7 @@ type NetEasyAPi struct {
 }
 
 // GetPlayUrl 获取播放列表
-func (n *NetEasyAPi) GetPlayUrl(ids []int64, br int64) ([]NetEasyGetPlayUrlInfo, error) {
+func (n *APi) GetPlayUrl(ids []int64, br int64) ([]GetPlayUrlInfo, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
@@ -39,7 +39,7 @@ func (n *NetEasyAPi) GetPlayUrl(ids []int64, br int64) ([]NetEasyGetPlayUrlInfo,
 	if err != nil {
 		return nil, err
 	}
-	v := NetEasyGetPlayUrlResp{}
+	v := GetPlayUrlResp{}
 	err = json.Unmarshal(body, &v)
 	if err != nil {
 		return nil, err
@@ -51,7 +51,7 @@ func (n *NetEasyAPi) GetPlayUrl(ids []int64, br int64) ([]NetEasyGetPlayUrlInfo,
 }
 
 // EmailLogin 邮箱登录
-func (n *NetEasyAPi) EmailLogin() error {
+func (n *APi) EmailLogin() error {
 	return nil
 	resp, err := http.Get(fmt.Sprintf("%s/login?email=%s&password=%s", n.Domain, n.Email, n.Password))
 	if err != nil {
@@ -89,13 +89,13 @@ func (n *NetEasyAPi) EmailLogin() error {
 	return nil
 }
 
-func (n *NetEasyAPi) SearchSinger(name string) ([]NetEasySearchSingerInfo, error) {
+func (n *APi) SearchSinger(name string) ([]SearchSingerInfo, error) {
 
 	body, err := n.get(fmt.Sprintf("%s/ugc/artist/search?keyword=%s", n.Domain, url.QueryEscape(name)), true)
 	if err != nil {
 		return nil, err
 	}
-	v := NetEasySearchSingerResp{}
+	v := SearchSingerResp{}
 	err = json.Unmarshal(body, &v)
 	if err != nil {
 		return nil, err
@@ -105,7 +105,7 @@ func (n *NetEasyAPi) SearchSinger(name string) ([]NetEasySearchSingerInfo, error
 	}
 	return v.Data.List, nil
 }
-func (n *NetEasyAPi) postJson(url string, data interface{}, needLogin bool) ([]byte, error) {
+func (n *APi) postJson(url string, data interface{}, needLogin bool) ([]byte, error) {
 	reqBody, err := json.Marshal(data)
 	if err != nil {
 		return nil, err
@@ -135,7 +135,7 @@ func (n *NetEasyAPi) postJson(url string, data interface{}, needLogin bool) ([]b
 	}
 	return io.ReadAll(resp.Body)
 }
-func (n *NetEasyAPi) get(url string, needLogin bool) ([]byte, error) {
+func (n *APi) get(url string, needLogin bool) ([]byte, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -165,13 +165,13 @@ func (n *NetEasyAPi) get(url string, needLogin bool) ([]byte, error) {
 	return io.ReadAll(resp.Body)
 }
 
-func (n *NetEasyAPi) SearchMusic(keywords string, offset, limit int) (*NetEasySearchMusicResult, error) {
+func (n *APi) SearchMusic(keywords string, offset, limit int) (*SearchMusicResult, error) {
 	respBody, err := n.get(fmt.Sprintf("%s/search?keywords=%s&type=1&offset=%d&limit=%d", n.Domain, url.QueryEscape(keywords), offset, limit), true)
 	if err != nil {
 		log.Println("搜索歌曲失败", string(respBody))
 		return nil, err
 	}
-	v := NetEasySearchMusicResp{}
+	v := SearchMusicResp{}
 	err = json.Unmarshal(respBody, &v)
 	if err != nil {
 		return nil, err
@@ -181,13 +181,13 @@ func (n *NetEasyAPi) SearchMusic(keywords string, offset, limit int) (*NetEasySe
 	}
 	return &v.Result, nil
 }
-func (n *NetEasyAPi) SearchAlbum(keywords string, offset, limit int) (*NetEasySearchAlbumResult, error) {
+func (n *APi) SearchAlbum(keywords string, offset, limit int) (*SearchAlbumResult, error) {
 
 	respBody, err := n.get(fmt.Sprintf("%s/search?keywords=%s&type=10&offset=%d&limit=%d", n.Domain, url.QueryEscape(keywords), offset, limit), true)
 	if err != nil {
 		return nil, err
 	}
-	v := NetEasySearchAlbumResp{}
+	v := SearchAlbumResp{}
 	err = json.Unmarshal(respBody, &v)
 	if err != nil {
 		return nil, err
@@ -197,7 +197,7 @@ func (n *NetEasyAPi) SearchAlbum(keywords string, offset, limit int) (*NetEasySe
 	}
 	return &v.Result, nil
 }
-func (n *NetEasyAPi) GetMusicLrc(id int64) (string, error) {
+func (n *APi) GetMusicLrc(id int64) (string, error) {
 	lrcBody, err := n.get(fmt.Sprintf("%s/lyric?id=%d", n.Domain, id), true)
 	if err != nil {
 		return "", err
@@ -212,12 +212,12 @@ func (n *NetEasyAPi) GetMusicLrc(id int64) (string, error) {
 	}
 	return lrc.Lrc.Lyric, nil
 }
-func (n *NetEasyAPi) SearchSuggest(keywords string) (*NetEasySearchSuggestResult, error) {
+func (n *APi) SearchSuggest(keywords string) (*SearchSuggestResult, error) {
 	body, err := n.get(fmt.Sprintf("%s/search/suggest?keywords=%s", n.Domain, url.QueryEscape(keywords)), true)
 	if err != nil {
 		return nil, err
 	}
-	r := NetEasySearchSuggestResp{}
+	r := SearchSuggestResp{}
 	err = json.Unmarshal(body, &r)
 	if err != nil {
 		return nil, err
@@ -246,13 +246,13 @@ GetSingerList
 
 	initial 取值 a-z/A-Z
 */
-func (n *NetEasyAPi) GetSingerList(tp int64, area int64, code string, limit int, offset int) ([]NetEasyArtistInfo, error) {
+func (n *APi) GetSingerList(tp int64, area int64, code string, limit int, offset int) ([]ArtistInfo, error) {
 	u := fmt.Sprintf("%s/artist/list?type=%d&area=%d&initial=%s&limit=%d&offset=%d", n.Domain, tp, area, code, limit, offset)
 	body, err := n.get(u, true)
 	if err != nil {
 		return nil, err
 	}
-	resp := NetEasySingerResp{}
+	resp := SingerResp{}
 	err = json.Unmarshal(body, &resp)
 	if err != nil {
 		return nil, err
@@ -263,11 +263,11 @@ func (n *NetEasyAPi) GetSingerList(tp int64, area int64, code string, limit int,
 	return resp.Artists, nil
 }
 
-func (n *NetEasyAPi) SetCookie(cookie string) {
+func (n *APi) SetCookie(cookie string) {
 	n.cookieStr = cookie
 }
 
-type NetEasySearchMusicResult struct {
+type SearchMusicResult struct {
 	Songs []struct {
 		Id      int64  `json:"id"`
 		Name    string `json:"name"`
@@ -320,9 +320,9 @@ type NetEasySearchMusicResult struct {
 	HasMore   bool `json:"hasMore"`
 	SongCount int  `json:"songCount"`
 }
-type NetEasySearchMusicResp struct {
-	Result NetEasySearchMusicResult `json:"result"`
-	Code   int                      `json:"code"`
+type SearchMusicResp struct {
+	Result SearchMusicResult `json:"result"`
+	Code   int               `json:"code"`
 }
 type netEasyMusicLrcResp struct {
 	Sgc bool `json:"sgc"`
@@ -418,26 +418,26 @@ type netEasyLoginResp struct {
 	} `json:"bindings"`
 	Cookie string `json:"cookie"`
 }
-type NetEasySearchSingerResp struct {
+type SearchSingerResp struct {
 	Msg  string `json:"msg"`
 	Code int    `json:"code"`
 	Data struct {
-		TotalCount int                       `json:"totalCount"`
-		List       []NetEasySearchSingerInfo `json:"list"`
+		TotalCount int                `json:"totalCount"`
+		List       []SearchSingerInfo `json:"list"`
 		ExtraCount struct {
 		} `json:"extraCount"`
 	} `json:"data"`
 }
-type NetEasySearchSingerInfo struct {
+type SearchSingerInfo struct {
 	ArtistId           int    `json:"artistId"`
 	ArtistName         string `json:"artistName"`
 	ArtistAvatarPicUrl string `json:"artistAvatarPicUrl"`
 }
-type NetEasySearchAlbumResp struct {
-	Result NetEasySearchAlbumResult `json:"result"`
-	Code   int                      `json:"code"`
+type SearchAlbumResp struct {
+	Result SearchAlbumResult `json:"result"`
+	Code   int               `json:"code"`
 }
-type NetEasySearchAlbumResult struct {
+type SearchAlbumResult struct {
 	HlWords    []string                 `json:"hlWords"`
 	Albums     []netEasySearchAlbumInfo `json:"albums"`
 	AlbumCount int                      `json:"albumCount"`
@@ -501,11 +501,11 @@ type netEasySearchAlbumInfo struct {
 	Mark          int    `json:"mark"`
 	ContainedSong string `json:"containedSong"`
 }
-type NetEasySearchSuggestResp struct {
-	Result NetEasySearchSuggestResult `json:"result"`
-	Code   int                        `json:"code"`
+type SearchSuggestResp struct {
+	Result SearchSuggestResult `json:"result"`
+	Code   int                 `json:"code"`
 }
-type NetEasySearchSuggestResult struct {
+type SearchSuggestResult struct {
 	Albums []struct {
 		Id     int    `json:"id"`
 		Name   string `json:"name"`
@@ -530,7 +530,7 @@ type NetEasySearchSuggestResult struct {
 		Mark        int      `json:"mark"`
 		TransNames  []string `json:"transNames,omitempty"`
 	} `json:"albums"`
-	Artists []NetEasySearchSuggestArtist `json:"artists"`
+	Artists []SearchSuggestArtist `json:"artists"`
 	Songs   []struct {
 		Id      int    `json:"id"`
 		Name    string `json:"name"`
@@ -600,7 +600,7 @@ type NetEasySearchSuggestResult struct {
 	} `json:"playlists"`
 	Order []string `json:"order"`
 }
-type NetEasySearchSuggestArtist struct {
+type SearchSuggestArtist struct {
 	Id        int         `json:"id"`
 	Name      string      `json:"name"`
 	PicUrl    string      `json:"picUrl"`
@@ -613,11 +613,11 @@ type NetEasySearchSuggestArtist struct {
 	Alia      []string    `json:"alia"`
 	Trans     interface{} `json:"trans"`
 }
-type NetEasyGetPlayUrlResp struct {
-	Code int                     `json:"code"`
-	Data []NetEasyGetPlayUrlInfo `json:"data"`
+type GetPlayUrlResp struct {
+	Code int              `json:"code"`
+	Data []GetPlayUrlInfo `json:"data"`
 }
-type NetEasyGetPlayUrlInfo struct {
+type GetPlayUrlInfo struct {
 	Id                 int64       `json:"id"`
 	Url                string      `json:"url"`
 	Br                 int         `json:"br"`
@@ -663,13 +663,13 @@ type NetEasyGetPlayUrlInfo struct {
 	MusicId      string      `json:"musicId"`
 }
 
-type NetEasySingerResp struct {
-	Artists []NetEasyArtistInfo `json:"artists"`
-	More    bool                `json:"more"`
-	Code    int                 `json:"code"`
+type SingerResp struct {
+	Artists []ArtistInfo `json:"artists"`
+	More    bool         `json:"more"`
+	Code    int          `json:"code"`
 }
 
-type NetEasyArtistInfo struct {
+type ArtistInfo struct {
 	AccountId   int64    `json:"accountId,omitempty"`
 	AlbumSize   int      `json:"albumSize"`
 	Alias       []string `json:"alias"`

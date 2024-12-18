@@ -9,7 +9,9 @@ import (
 	"flag"
 	"fmt"
 	"github.com/yeyudekuangxiang/common-go/db"
-	"github.com/yeyudekuangxiang/msapi/search"
+	"github.com/yeyudekuangxiang/msapi/cmd/api"
+	"github.com/yeyudekuangxiang/msapi/pkg/neteasy"
+	"github.com/yeyudekuangxiang/msapi/web"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
@@ -48,6 +50,14 @@ func main() {
 		Close()
 	}()
 
+	if *mode == "sync" {
+		api.ListenFile(http.FS(web.Fs))
+		api.Run(closeCh)
+		<-closeCh
+		time.Sleep(time.Second * 10)
+		return
+	}
+
 	if *runHttp {
 		go func() {
 			log.Println("开始启动http")
@@ -71,7 +81,7 @@ func main() {
 
 	log.Println("5秒后开始抓取")
 	time.Sleep(time.Second * 5)
-	netEasy := search.NetEasyAPi{
+	netEasy := neteasy.APi{
 		Domain: *domain,
 	}
 
@@ -127,6 +137,7 @@ func main() {
 		downHotArtistMusic(netEasy, linkDb)
 	case "down":
 		downNormalArtistMusic(netEasy, linkDb)
+
 	}
 	Close()
 }
@@ -182,7 +193,7 @@ type Music struct {
 	Sort    int64
 }
 
-func saveAllSinger(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
+func saveAllSinger(netEasy neteasy.APi, linkDb *gorm.DB) {
 	// 暂时屏蔽入驻歌手
 	sort := int64(0)
 	okMap := make(map[int64]bool)
@@ -227,7 +238,7 @@ func saveAllSinger(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
 		}
 	}
 }
-func saveAllHotMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
+func saveAllHotMusic(netEasy neteasy.APi, linkDb *gorm.DB) {
 	artists := make([]Artist, 0)
 	limit := 100
 	err := linkDb.Where("site = '163' and is_fetch = 0 and sort < 9999999999").Order("sort asc").Find(&artists).Error
@@ -290,7 +301,7 @@ func saveAllHotMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
 		}
 	}
 }
-func saveAllNormalMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
+func saveAllNormalMusic(netEasy neteasy.APi, linkDb *gorm.DB) {
 	artists := make([]Artist, 0)
 	limit := 100
 	linkDb.Where("site = ? and is_fetch = 0 and sort = 9999999999", "163").FindInBatches(&artists, 100, func(tx *gorm.DB, batch int) error {
@@ -351,8 +362,8 @@ func saveAllNormalMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
 }
 func Close() {
 	close(closeCh)
-	log.Println("5秒后退出")
-	time.Sleep(time.Second * 5)
+	log.Println("10秒后退出")
+	time.Sleep(time.Second * 10)
 	os.Exit(0)
 }
 func CloseWithErr(v ...any) {
@@ -376,7 +387,7 @@ func Scan[T any](linkDB *gorm.DB, rows *sql.Rows, num int) ([]T, error) {
 	}
 	return list, nil
 }
-func downHotArtistMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
+func downHotArtistMusic(netEasy neteasy.APi, linkDb *gorm.DB) {
 
 	c := make(chan int, *num)
 	for {
@@ -459,7 +470,7 @@ func downHotArtistMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
 		time.Sleep(time.Second * 30)
 	}
 }
-func downNormalArtistMusic(netEasy search.NetEasyAPi, linkDb *gorm.DB) {
+func downNormalArtistMusic(netEasy neteasy.APi, linkDb *gorm.DB) {
 	musicList := make([]Music, 0)
 	c := make(chan int, *num)
 	linkDb.Where("site = '163' and is_down = 0 and sort = 9999999999").FindInBatches(&musicList, 50, func(tx *gorm.DB, batch int) error {
@@ -543,13 +554,13 @@ func autoDown(subDirName string, singerName, musicName, u string) (string, error
 	if strings.Contains(ct, "audio/mpeg") {
 		fileName = fmt.Sprintf("%s - %s.mp3", musicName, singerName)
 	} else if strings.Contains(ct, "audio/wav") {
-		fileName = fmt.Sprintf("%s - %s.mp3", musicName, singerName)
+		fileName = fmt.Sprintf("%s - %s.wav", musicName, singerName)
 	} else if strings.Contains(ct, "audio/ogg") || strings.Contains(ct, "audio/x-ogg") {
-		fileName = fmt.Sprintf("%s - %s.mp3", musicName, singerName)
+		fileName = fmt.Sprintf("%s - %s.ogg", musicName, singerName)
 	} else if strings.Contains(ct, "audio/acc") {
-		fileName = fmt.Sprintf("%s - %s.mp3", musicName, singerName)
+		fileName = fmt.Sprintf("%s - %s.acc", musicName, singerName)
 	} else if strings.Contains(ct, "audio/flac") || strings.Contains(ct, "audio/x-flac") {
-		fileName = fmt.Sprintf("%s - %s.mp3", musicName, singerName)
+		fileName = fmt.Sprintf("%s - %s.flac", musicName, singerName)
 	} else {
 		//log.Println("未知的音频格式", u, musicName, ct)
 	}
