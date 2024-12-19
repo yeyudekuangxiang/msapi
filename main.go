@@ -3,15 +3,13 @@ package main
 import (
 	"bytes"
 	"crypto/md5"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"github.com/yeyudekuangxiang/common-go/db"
-	"github.com/yeyudekuangxiang/msapi/cmd/api"
 	"github.com/yeyudekuangxiang/msapi/pkg/neteasy"
-	"github.com/yeyudekuangxiang/msapi/web"
+	"github.com/yeyudekuangxiang/woozooo"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
@@ -49,14 +47,6 @@ func main() {
 		<-sigChan
 		Close()
 	}()
-
-	if *mode == "sync" {
-		api.ListenFile(http.FS(web.Fs))
-		api.Run(closeCh)
-		<-closeCh
-		time.Sleep(time.Second * 10)
-		return
-	}
 
 	if *runHttp {
 		go func() {
@@ -137,7 +127,6 @@ func main() {
 		downHotArtistMusic(netEasy, linkDb)
 	case "down":
 		downNormalArtistMusic(netEasy, linkDb)
-
 	}
 	Close()
 }
@@ -304,61 +293,64 @@ func saveAllHotMusic(netEasy neteasy.APi, linkDb *gorm.DB) {
 func saveAllNormalMusic(netEasy neteasy.APi, linkDb *gorm.DB) {
 	artists := make([]Artist, 0)
 	limit := 100
-	linkDb.Where("site = ? and is_fetch = 0 and sort = 9999999999", "163").FindInBatches(&artists, 100, func(tx *gorm.DB, batch int) error {
-		for _, artist := range artists {
-			for i := 1; i < 5; i++ {
-				log.Println("搜索歌手", artist.ID, artist.Name, i)
-				searchResult, err := netEasy.SearchMusic(artist.Name, (i-1)*limit, limit)
-				if err != nil {
-					CloseWithErr("搜索歌手歌曲失败", artist, err)
-				}
-				if len(searchResult.Songs) == 0 {
-					log.Println("歌手搜索完毕", artist.Name)
-					log.Println("30秒后继续")
-					time.Sleep(30 * time.Second)
-					break
-				}
-				log.Println("搜索成功", artist.Name, len(searchResult.Songs))
-				musicList := make([]Music, 0)
-				for _, item := range searchResult.Songs {
-					artistStr, _ := json.Marshal(item.Artists)
-					musicList = append(musicList, Music{
-						MusicId: strconv.FormatInt(item.Id, 10),
-						Name:    item.Name,
-						Pic:     "",
-						Lyric:   "",
-						Artist:  string(artistStr),
-						Album:   "",
-						Time:    0,
-						Quality: "",
-						DownUrl: "",
-						IsDown:  0,
-						Path:    "",
-						Site:    "163",
-						Sort:    9999999999,
-					})
-				}
-				err = linkDb.Clauses(clause.OnConflict{DoNothing: true}).Create(&musicList).Error
-				if err != nil {
-					CloseWithErr("保存歌曲信息失败", artist, i, err)
-				}
-				if len(searchResult.Songs) < limit {
-					log.Println("歌手搜索完毕", artist.Name)
-					log.Println("30秒后继续")
-					time.Sleep(30 * time.Second)
-					break
-				}
+	err := linkDb.Where("site = '163' and is_fetch = 0 and sort = 9999999999").Find(&artists).Error
+	if err != nil {
+		log.Println("查询热门歌手失败", err)
+		Close()
+	}
+
+	for _, artist := range artists {
+		for i := 1; i < 5; i++ {
+			log.Println("搜索歌手", artist.ID, artist.Name, i)
+			searchResult, err := netEasy.SearchMusic(artist.Name, (i-1)*limit, limit)
+			if err != nil {
+				CloseWithErr("搜索歌手歌曲失败", artist, err)
+			}
+			if len(searchResult.Songs) == 0 {
+				log.Println("歌手搜索完毕", artist.Name)
 				log.Println("30秒后继续")
 				time.Sleep(30 * time.Second)
+				break
 			}
-			artist.IsFetch = 1
-			err := tx.Save(&artist).Error
+			log.Println("搜索成功", artist.Name, len(searchResult.Songs))
+			musicList := make([]Music, 0)
+			for _, item := range searchResult.Songs {
+				artistStr, _ := json.Marshal(item.Artists)
+				musicList = append(musicList, Music{
+					MusicId: strconv.FormatInt(item.Id, 10),
+					Name:    item.Name,
+					Pic:     "",
+					Lyric:   "",
+					Artist:  string(artistStr),
+					Album:   "",
+					Time:    0,
+					Quality: "",
+					DownUrl: "",
+					IsDown:  0,
+					Path:    "",
+					Site:    "163",
+					Sort:    9999999999,
+				})
+			}
+			err = linkDb.Clauses(clause.OnConflict{DoNothing: true}).Create(&musicList).Error
 			if err != nil {
-				log.Println("保存搜索状态失败", artist, err)
+				CloseWithErr("保存歌曲信息失败", artist, i, err)
 			}
+			if len(searchResult.Songs) < limit {
+				log.Println("歌手搜索完毕", artist.Name)
+				log.Println("30秒后继续")
+				time.Sleep(30 * time.Second)
+				break
+			}
+			log.Println("30秒后继续")
+			time.Sleep(30 * time.Second)
 		}
-		return nil
-	})
+		artist.IsFetch = 1
+		err := linkDb.Save(&artist).Error
+		if err != nil {
+			log.Println("保存搜索状态失败", artist, err)
+		}
+	}
 }
 func Close() {
 	close(closeCh)
@@ -370,24 +362,30 @@ func CloseWithErr(v ...any) {
 	log.Println(v...)
 	Close()
 }
-func Scan[T any](linkDB *gorm.DB, rows *sql.Rows, num int) ([]T, error) {
-	list := make([]T, 0, num)
-	var err error
-	for rows.Next() && num > 0 {
-		var v T
-		err = linkDB.ScanRows(rows, &v)
-		if err != nil {
-			return nil, err
-		}
-		list = append(list, v)
-		num--
-	}
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-	return list, nil
-}
+
+var dirLock sync.Mutex
+
 func downHotArtistMusic(netEasy neteasy.APi, linkDb *gorm.DB) {
+	dirResp, err := lanClient.ReadSubDir(woozooo.ReadSubDirReq{
+		DirId: -1,
+	})
+	if err != nil {
+		log.Println("获取网盘文件夹失败", err)
+		return
+	}
+	if dirResp.Zt != 1 {
+		log.Println("获取网盘文件夹失败", dirResp)
+		return
+	}
+	dirMap := make(map[string]int64)
+	for _, item := range dirResp.Text {
+		dirId, err := strconv.ParseInt(item.FolId, 10, 64)
+		if err != nil {
+			log.Println("获取网盘文件夹失败", err)
+			return
+		}
+		dirMap[item.Name] = dirId
+	}
 
 	c := make(chan int, *num)
 	for {
@@ -445,7 +443,34 @@ func downHotArtistMusic(netEasy neteasy.APi, linkDb *gorm.DB) {
 				}()
 
 				dir, realSingerName := getSingerName(music.Artist)
-				filePath, err := autoDown(dir, realSingerName, music.Name, song.Url)
+				dirLock.Lock()
+				dirId, ok := dirMap[dir]
+				if !ok {
+					dirResp, err := lanClient.Mkdir(woozooo.MkdirReq{
+						ParentId:          -1,
+						FolderName:        dir,
+						FolderDescription: dir,
+					})
+					if err != nil {
+						log.Println("创建文件夹失败", err)
+						dirLock.Unlock()
+						return
+					}
+					if dirResp.Zt != 1 {
+						log.Println("创建文件夹失败", dirResp)
+						dirLock.Unlock()
+						return
+					}
+					dirId, err = strconv.ParseInt(dirResp.Text, 10, 64)
+					if dirResp.Zt != 1 {
+						log.Println("创建文件夹失败", err)
+						dirLock.Unlock()
+						return
+					}
+					dirMap[dir] = dirId
+				}
+				dirLock.Unlock()
+				filePath, err := down2Woo(dirId, dir, realSingerName, music.Name, song.Url)
 				if err != nil {
 					log.Println("下载失败", music.ID, err)
 					music.IsDown = 4
@@ -662,4 +687,94 @@ func ReplaceFileName(filename string) string {
 		filename = strings.ReplaceAll(filename, oldStr, newStr)
 	}
 	return filename
+}
+
+var lanClient *woozooo.Client
+
+func init() {
+	var err error
+	lanClient, err = woozooo.NewClient("https://pc.woozooo.com", os.Getenv("woozooocookie"))
+	if err != nil {
+		log.Panic(err)
+	}
+}
+func down2Woo(dirId int64, subDirName string, singerName, musicName, u string) (string, error) {
+	log.Println("downuuuuu", u)
+	// 发送GET请求
+	req, err := http.NewRequest("GET", u, nil)
+	if err != nil {
+		return "", err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	//log.Println(resp, err)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	var fileName string
+	ct := resp.Header.Get("Content-Type")
+
+	if strings.Contains(ct, "audio/mpeg") {
+		fileName = fmt.Sprintf("%s - %s.mp3", musicName, singerName)
+	} else if strings.Contains(ct, "audio/wav") {
+		fileName = fmt.Sprintf("%s - %s.wav", musicName, singerName)
+	} else if strings.Contains(ct, "audio/ogg") || strings.Contains(ct, "audio/x-ogg") {
+		fileName = fmt.Sprintf("%s - %s.ogg", musicName, singerName)
+	} else if strings.Contains(ct, "audio/acc") {
+		fileName = fmt.Sprintf("%s - %s.acc", musicName, singerName)
+	} else if strings.Contains(ct, "audio/flac") || strings.Contains(ct, "audio/x-flac") {
+		fileName = fmt.Sprintf("%s - %s.flac", musicName, singerName)
+	} else {
+		//log.Println("未知的音频格式", u, musicName, ct)
+	}
+
+	// 检查Content-Disposition头以获取文件名
+	cd := resp.Header.Get("Content-Disposition")
+	if cd != "" && fileName == "" {
+		_, params, err := mime.ParseMediaType(cd)
+		if err == nil {
+			fileExt := path.Ext(params["filename"])
+			if fileExt != "" {
+				fileName = fmt.Sprintf("%s - %s%s", musicName, singerName, fileExt)
+			} else if params["filename"] != "" {
+				fileName = params["filename"]
+			}
+		}
+	}
+
+	if fileName == "" && strings.Contains(resp.Request.URL.Path, ".") {
+		fileExt := path.Ext(resp.Request.URL.Path)
+		if fileExt != "" {
+			fileName = fmt.Sprintf("%s - %s%s", musicName, singerName, fileExt)
+		}
+	}
+
+	if fileName == "" {
+		fileName = fmt.Sprintf("%s - %s", musicName, singerName)
+	}
+	fileName = ReplaceFileName(fileName)
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	if bytes.Contains(body, []byte("验证")) {
+		return "", errors.New("安全验证")
+	}
+
+	uploadResp, err := lanClient.UploadFileFromReader(bytes.NewReader(body), fileName, dirId)
+	if err != nil {
+		return "", err
+	}
+	if uploadResp.Zt != 1 {
+		return "", fmt.Errorf("上传失败%v", uploadResp)
+	}
+	info := uploadResp.Text[0]
+	data, err := json.Marshal(info)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
